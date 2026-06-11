@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Integration & Riemann Sum Calculator</title>
+    <!-- Tailwind CSS for modern layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Math.js for safe, robust client-side expression compilation & evaluation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <style>
+        /* Custom scrollbar styling for control panel */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+        /* Formula glowing text effect */
+        .glow-green {
+            text-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+        }
+        .glow-indigo {
+            text-shadow: 0 0 10px rgba(129, 140, 248, 0.4);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans h-full overflow-hidden flex flex-col select-none">
+
+    <!-- Header Section -->
+    <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex flex-col sm:flex-row justify-between items-center shrink-0 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-indigo-600/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m0-15l-3 3m3-3l3 3" />
+                    <!-- Integral symbol replacement drawing -->
+                    <path d="M9 19c0 .5-.2.9-.6 1.1s-1 .1-1.3-.2L5 18c-.6-.6-.6-1.5 0-2l2-2" stroke-linecap="round"/>
+                    <path d="M15 5c0-.5.2-.9.6-1.1s1-.1 1.3.2L19 6c.6.6.6 1.5 0 2l-2 2" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold tracking-wide text-white">Calculus Visualizer</h1>
+                <p class="text-xs text-slate-400">Interactive Integrals & Riemann Sums</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2 bg-slate-950/60 p-1 border border-slate-800 rounded-lg text-xs text-slate-400">
+            <span class="px-2 py-1 bg-indigo-600 text-white rounded font-semibold">t or x</span>
+            <span class="pr-2">Use either variable inside functions</span>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        
+        <!-- Sidebar Controls -->
+        <aside class="w-full md:w-[420px] bg-slate-900/90 border-r border-slate-800 flex flex-col overflow-y-auto max-h-[45vh] md:max-h-none shrink-0 z-10 shadow-2xl backdrop-blur-sm">
+            <div class="p-5 space-y-6">
+                
+                <!-- Function Input Panel -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">1. Define Function</label>
+                    <div class="relative flex items-center">
+                        <span class="absolute left-3 text-lg font-serif italic text-indigo-400">f(x) =</span>
+                        <input id="funcInput" type="text" value="x^2 - 3" 
+                            class="w-full pl-16 pr-10 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-indigo-500 text-white font-mono text-lg transition-all shadow-inner"
+                            placeholder="e.g. sin(x) + 1" />
+                        <span id="funcStatus" class="absolute right-3 text-emerald-400" title="Valid Function">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <p id="errorMsg" class="hidden text-rose-400 text-xs mt-1 px-1 font-mono"></p>
+                </div>
+
+                <!-- Integration Limits Panel -->
+                <div class="space-y-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800/80">
+                    <div class="flex justify-between items-center">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">2. Limits of Integration</label>
+                        <span class="text-[10px] text-slate-500 italic">Drag bounds on graph or use sliders</span>
+                    </div>
+                    
+                    <!-- Limit a -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-300 font-medium">Lower Bound <span class="font-serif italic font-bold text-emerald-400">(a)</span></span>
+                            <input id="numA" type="number" step="0.1" value="-1.5" class="w-20 bg-slate-900 border border-slate-800 text-right rounded px-1.5 py-0.5 text-xs text-emerald-400 focus:outline-none focus:border-emerald-500 font-mono" />
+                        </div>
+                        <input id="sliderA" type="range" min="-10" max="10" step="0.1" value="-1.5" class="w-full accent-emerald-500" />
+                    </div>
+
+                    <!-- Limit b -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-slate-300 font-medium">Upper Bound <span class="font-serif italic font-bold text-sky-400">(b)</span></span>
+                            <input id="numB" type="number" step="0.1" value="2.5" class="w-20 bg-slate-900 border border-slate-800 text-right rounded px-1.5 py-0.5 text-xs text-sky-400 focus:outline-none focus:border-sky-500 font-mono" />
+                        </div>
+                        <input id="sliderB" type="range" min="-10" max="10" step="0.1" value="2.5" class="w-full accent-sky-500" />
+                    </div>
+                </div>
+
+                <!-- Visualization Mode & Subintervals -->
+                <div class="space-y-4">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">3. Visualization Mode</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="setVisMode('exact')" id="btn-exact" class="vis-btn py-2.5 px-3 rounded-lg text-xs font-medium border transition-all text-center bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-md shadow-indigo-950/20">
+                            Definite Integral
+                        </button>
+                        <button onclick="setVisMode('trapezoid')" id="btn-trapezoid" class="vis-btn py-2.5 px-3 rounded-lg text-xs font-medium border border-slate-800 text-slate-400 bg-slate-950 hover:bg-slate-800 transition-all text-center">
+                            Trapezoidal Sum
+                        </button>
+                        <button onclick="setVisMode('midpoint')" id="btn-midpoint" class="vis-btn py-2.5 px-3 rounded-lg text-xs font-medium border border-slate-800 text-slate-400 bg-slate-950 hover:bg-slate-800 transition-all text-center">
+                            Midpoint Riemann
+                        </button>
+                        <button onclick="setVisMode('left')" id="btn-left" class="vis-btn py-2.5 px-3 rounded-lg text-xs font-medium border border-slate-800 text-slate-400 bg-slate-950 hover:bg-slate-800 transition-all text-center">
+                            Left Riemann
+                        </button>
+                        <button onclick="setVisMode('right')" id="btn-right" class="vis-btn py-2.5 px-3 rounded-lg text-xs font-medium border border-slate-800 text-slate-400 bg-slate-950 hover:bg-slate-800 transition-all text-center col-span-2">
+                            Right Riemann
+                        </button>
+                    </div>
+
+                    <!-- Intervals Count (Riemann / Trapezoid) -->
+                    <div id="intervalControl" class="space-y-1 hidden">
+                        <div class="flex justify-between text-xs">
+                            <span class="text-slate-400 font-medium">Subintervals (N)</span>
+                            <span id="labelN" class="font-mono text-indigo-400 font-bold">20</span>
+                        </div>
+                        <input id="sliderN" type="range" min="4" max="100" step="1" value="20" class="w-full accent-indigo-500" />
+                    </div>
+                </div>
+
+                <!-- Math Presets -->
+                <div class="space-y-2">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Presets</label>
+                    <div class="flex flex-wrap gap-1.5">
+                        <button onclick="applyPreset('parabola')" class="preset-btn px-2.5 py-1 bg-slate-800 hover:bg-indigo-950 hover:text-indigo-300 border border-slate-700/60 hover:border-indigo-500/50 rounded text-xs transition-colors text-slate-300">
+                            Parabola
+                        </button>
+                        <button onclick="applyPreset('sine')" class="preset-btn px-2.5 py-1 bg-slate-800 hover:bg-indigo-950 hover:text-indigo-300 border border-slate-700/60 hover:border-indigo-500/50 rounded text-xs transition-colors text-slate-300">
+                            Trig Wave
+                        </button>
+                        <button onclick="applyPreset('gaussian')" class="preset-btn px-2.5 py-1 bg-slate-800 hover:bg-indigo-950 hover:text-indigo-300 border border-slate-700/60 hover:border-indigo-500/50 rounded text-xs transition-colors text-slate-300">
+                            Bell Curve
+                        </button>
+                        <button onclick="applyPreset('decay')" class="preset-btn px-2.5 py-1 bg-slate-800 hover:bg-indigo-950 hover:text-indigo-300 border border-slate-700/60 hover:border-indigo-500/50 rounded text-xs transition-colors text-slate-300">
+                            Oscillator
+                        </button>
+                        <button onclick="applyPreset('polynomial')" class="preset-btn px-2.5 py-1 bg-slate-800 hover:bg-indigo-950 hover:text-indigo-300 border border-slate-700/60 hover:border-indigo-500/50 rounded text-xs transition-colors text-slate-300">
+                            Cubic Poly
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Calculations Output Section -->
+                <div class="border-t border-slate-800 pt-5 space-y-4">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400">Calculation Output</label>
+                    
+                    <!-- Main Integral Display -->
+                    <div class="bg-indigo-950/40 border border-indigo-500/20 p-4 rounded-xl text-center shadow-lg relative overflow-hidden">
+                        <div class="absolute -right-4 -bottom-4 text-slate-800/10 font-bold text-8xl pointer-events-none italic font-serif">∫</div>
+                        <div class="text-[11px] uppercase tracking-widest text-indigo-400 font-bold mb-1">Definite Integral</div>
+                        <div class="flex items-center justify-center gap-1 font-serif text-slate-300 mb-1">
+                            <span class="text-2xl relative -top-1">∫</span>
+                            <span class="flex flex-col text-[10px] leading-tight font-mono text-left mr-1">
+                                <span class="text-sky-400" id="mathB">2.5</span>
+                                <span class="text-emerald-400 mt-0.5" id="mathA">-1.5</span>
+                            </span>
+                            <span class="text-base italic">f(x) dx  ≈</span>
+                        </div>
+                        <div id="resultVal" class="text-3xl font-extrabold text-white font-mono tracking-tight glow-indigo">0.00000</div>
+                    </div>
+
+                    <!-- Geometric Metrics Breakdowns -->
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
+                            <div class="text-slate-500 font-semibold uppercase tracking-wider mb-0.5 text-[10px]">Net Algebraic Area</div>
+                            <div id="netArea" class="font-mono text-sm text-slate-200">0.00000</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg">
+                            <div class="text-slate-500 font-semibold uppercase tracking-wider mb-0.5 text-[10px]">Total Enclosed Area</div>
+                            <div id="grossArea" class="font-mono text-sm text-slate-200">0.00000</div>
+                        </div>
+                        <div class="bg-slate-950 border border-slate-800 p-3 rounded-lg col-span-2 flex justify-between items-center">
+                            <div>
+                                <div class="text-emerald-500 font-semibold uppercase tracking-wider text-[10px] flex items-center gap-1">
+                                    <span class="inline-block w-2 h-2 rounded-full bg-emerald-500"></span> Area Above Axis
+                                </div>
+                                <div id="posArea" class="font-mono text-sm text-emerald-400 mt-0.5">0.00000</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-rose-500 font-semibold uppercase tracking-wider text-[10px] flex items-center justify-end gap-1">
+                                    <span class="inline-block w-2 h-2 rounded-full bg-rose-500"></span> Area Below Axis
+                                </div>
+                                <div id="negArea" class="font-mono text-sm text-rose-400 mt-0.5">0.00000</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </aside>
+
+        <!-- Canvas and Visual Graph Area -->
+        <div class="flex-1 relative h-full bg-slate-950 flex flex-col">
+            <!-- View Controls overlay -->
+            <div class="absolute top-4 right-4 z-20 flex flex-col gap-2">
+                <button onclick="zoom(1.2)" class="w-9 h-9 flex items-center justify-center bg-slate-900/80 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-slate-300 transition-colors shadow-lg backdrop-blur-md" title="Zoom In">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                </button>
+                <button onclick="zoom(1/1.2)" class="w-9 h-9 flex items-center justify-center bg-slate-900/80 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-slate-300 transition-colors shadow-lg backdrop-blur-md" title="Zoom Out">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                    </svg>
+                </button>
+                <button onclick="resetViewport()" class="w-9 h-9 flex items-center justify-center bg-slate-900/80 hover:bg-slate-800 border border-slate-700/50 rounded-lg text-slate-300 transition-colors shadow-lg backdrop-blur-md" title="Reset Axis View">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H18" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Canvas Viewport -->
+            <div class="flex-1 w-full relative" id="canvasContainer">
+                <canvas id="graphCanvas" class="w-full h-full cursor-grab active:cursor-grabbing block"></canvas>
+            </div>
+            
+            <!-- Bottom Helper bar -->
+            <div class="bg-slate-900 border-t border-slate-800/80 px-4 py-2 text-[11px] text-slate-500 flex justify-between items-center shrink-0">
+                <span class="flex items-center gap-1.5">
+                    <span class="inline-block w-2.5 h-2.5 bg-indigo-500 rounded-sm"></span> Function Curve
+                    <span class="inline-block w-2.5 h-2.5 bg-emerald-500/30 border border-emerald-500/60 rounded-sm ml-2"></span> Area > 0
+                    <span class="inline-block w-2.5 h-2.5 bg-rose-500/30 border border-rose-500/60 rounded-sm ml-2"></span> Area < 0
+                </span>
+                <span class="font-mono">Coordinates updated live • Scroll to Zoom • Drag to Pan</span>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- App JavaScript Logic -->
+    <script>
+        // DOM Elements
+        const canvas = document.getElementById('graphCanvas');
+        const ctx = canvas.getContext('2d');
+        const container = document.getElementById('canvasContainer');
+        const funcInput = document.getElementById('funcInput');
+        const funcStatus = document.getElementById('funcStatus');
+        const errorMsg = document.getElementById('errorMsg');
+        
+        const sliderA = document.getElementById('sliderA');
+        const sliderB = document.getElementById('sliderB');
+        const numA = document.getElementById('numA');
+        const numB = document.getElementById('numB');
+        const sliderN = document.getElementById('sliderN');
+        const labelN = document.getElementById('labelN');
+        const intervalControl = document.getElementById('intervalControl');
+
+        // Results displays
+        const resultVal = document.getElementById('resultVal');
+        const netAreaDisp = document.getElementById('netArea');
+        const grossAreaDisp = document.getElementById('grossArea');
+        const posAreaDisp = document.getElementById('posArea');
+        const negAreaDisp = document.getElementById('negArea');
+        const mathADisp = document.getElementById('mathA');
+        const mathBDisp = document.getElementById('mathB');
+
+        // Math.js configuration
+        const parser = math.parser();
+
+        // Preset collection
+        const presets = {
+            parabola: { expr: "x^2 - 3", a: -1.5, b: 2.5 },
+            sine: { expr: "2 * sin(1.5 * x)", a: -3.0, b: 4.5 },
+            gaussian: { expr: "4 * e^(-(x^2)/2)", a: -2.0, b: 2.0 },
+            decay: { expr: "3 * sin(3*x) * e^(-0.2*x)", a: 0, b: 6.5 },
+            polynomial: { expr: "0.1*x^3 - 0.8*x^2 + x + 2", a: -2.0, b: 7.0 }
+        };
+
+        // Graph View State (math units translation to screen coordinates)
+        let viewport = {
+            centerX: 0.0,  // math coordinate centered on screen
+            centerY: 0.0,
+            scaleX: 60.0,  // pixels per math unit
+            scaleY: 60.0,
+            minScale: 10,
+            maxScale: 1000
+        };
+
+        // Integration parameters
+        let mathState = {
+            exprStr: 'x^2 - 3',
+            compiledExpr: null,
+            a: -1.5,
+            b: 2.5,
+            visMode: 'exact', // 'exact', 'left', 'right', 'midpoint', 'trapezoid'
+            N: 20
+        };
+
+        // Drag Interaction Tracker
+        let interactState = {
+            isDragging: false,
+            draggedItem: null, // 'a', 'b', or 'pan'
+            startX: 0,
+            startY: 0,
+            startCenterX: 0,
+            startCenterY: 0,
+            grabTolerance: 20  // pixel neighborhood to catch limit bounds
+        };
+
+        // Setup Application on Load
+        window.addEventListener('load', () => {
+            resizeCanvas();
+            parseAndCompile(funcInput.value);
+            syncInputControls();
+            draw();
+        });
+
+        // Resize Listener
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            draw();
+        });
+
+        function resizeCanvas() {
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+        }
+
+        // Parse user-typed math strings safely
+        function parseAndCompile(rawText) {
+            // Replace standard notation helper variables (t -> x)
+            let parsedText = rawText.replace(/\bt\b/g, 'x');
+            try {
+                // Compile the math expression using MathJS
+                const compiled = math.compile(parsedText);
+                
+                // Quick dry run evaluation test
+                compiled.evaluate({ x: 1 });
+                
+                // If success:
+                mathState.exprStr = rawText;
+                mathState.compiledExpr = compiled;
+                
+                // UI styles for successful parsing
+                funcStatus.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+                funcStatus.setAttribute('title', 'Valid Expression');
+                errorMsg.classList.add('hidden');
+                funcInput.classList.remove('border-rose-500');
+                funcInput.classList.add('focus:border-indigo-500');
+                return true;
+            } catch (err) {
+                // Keep last functioning model inside compiledExpr but display parsing warnings
+                funcStatus.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`;
+                funcStatus.setAttribute('title', 'Math Parsing Error');
+                errorMsg.textContent = err.message;
+                errorMsg.classList.remove('hidden');
+                funcInput.classList.add('border-rose-500');
+                funcInput.classList.remove('focus:border-indigo-500');
+                return false;
+            }
+        }
+
+        // Live math evaluation helper
+        function evaluateFunction(xVal) {
+            if (!mathState.compiledExpr) return 0;
+            try {
+                const res = mathState.compiledExpr.evaluate({ x: xVal });
+                if (typeof res === 'number') {
+                    return isFinite(res) ? res : 0;
+                }
+                return 0;
+            } catch (e) {
+                return 0;
+            }
+        }
+
+        // Coordinate Conversions
+        function toScreenX(mathX) {
+            return (canvas.width / 2) + (mathX - viewport.centerX) * viewport.scaleX;
+        }
+
+        function toScreenY(mathY) {
+            // Invert Y axes for standard graphics space coordinate mappings
+            return (canvas.height / 2) - (mathY - viewport.centerY) * viewport.scaleY;
+        }
+
+        function toMathX(screenX) {
+            return viewport.centerX + (screenX - canvas.width / 2) / viewport.scaleX;
+        }
+
+        function toMathY(screenY) {
+            return viewport.centerY - (screenY - canvas.height / 2) / viewport.scaleY;
+        }
+
+        // Handle mathematical Presets
+        function applyPreset(presetKey) {
+            const config = presets[presetKey];
+            if (!config) return;
+            
+            funcInput.value = config.expr;
+            parseAndCompile(config.expr);
+            
+            mathState.a = config.a;
+            mathState.b = config.b;
+            
+            // Recenter viewport to capture the preset beautifully
+            viewport.centerX = (config.a + config.b) / 2;
+            viewport.centerY = evaluateFunction(viewport.centerX);
+            viewport.scaleX = 60.0;
+            viewport.scaleY = 60.0;
+            
+            syncInputControls();
+            recalculateMetrics();
+            draw();
+        }
+
+        // Sync numeric values with DOM elements
+        function syncInputControls() {
+            sliderA.value = mathState.a.toFixed(1);
+            sliderB.value = mathState.b.toFixed(1);
+            numA.value = mathState.a.toFixed(3);
+            numB.value = mathState.b.toFixed(3);
+            sliderN.value = mathState.N;
+            labelN.textContent = mathState.N;
+
+            mathADisp.textContent = mathState.a.toFixed(2);
+            mathBDisp.textContent = mathState.b.toFixed(2);
+        }
+
+        // Adjust Integration mode visualizers
+        function setVisMode(mode) {
+            mathState.visMode = mode;
+            
+            // Toggle highlight UI styles
+            document.querySelectorAll('.vis-btn').forEach(btn => {
+                btn.className = "vis-btn py-2.5 px-3 rounded-lg text-xs font-medium border border-slate-800 text-slate-400 bg-slate-950 hover:bg-slate-800 transition-all text-center";
+            });
+            
+            const activeBtn = document.getElementById(`btn-${mode}`);
+            if (activeBtn) {
+                activeBtn.className = "vis-btn py-2.5 px-3 rounded-lg text-xs font-medium border transition-all text-center bg-indigo-600/20 border-indigo-500 text-indigo-300 shadow-md shadow-indigo-950/20";
+            }
+
+            // Reveal/Hide Subinterval dynamic slider controls
+            if (mode === 'exact') {
+                intervalControl.classList.add('hidden');
+            } else {
+                intervalControl.classList.remove('hidden');
+            }
+            
+            recalculateMetrics();
+            draw();
+        }
+
+        // Core Area & Sum computations
+        function recalculateMetrics() {
+            const start = Math.min(mathState.a, mathState.b);
+            const end = Math.max(mathState.a, mathState.b);
+            const direction = mathState.a <= mathState.b ? 1 : -1;
+
+            let calculatedVal = 0;
+            let sumPositive = 0;
+            let sumNegative = 0;
+            let totalEnclosed = 0;
+
+            // 1. Calculate continuous true definite integral (highly fine-grained Simpson's 1/3 integration)
+            const fineSteps = 10000; 
+            const hFine = (end - start) / fineSteps;
+            
+            // Temporary arrays for exact physical surface metrics
+            let exactNet = 0;
+            let exactGross = 0;
+            let exactPos = 0;
+            let exactNeg = 0;
+
+            for (let i = 0; i <= fineSteps; i++) {
+                const xCurrent = start + i * hFine;
+                const yVal = evaluateFunction(xCurrent);
+                
+                // Simpson weightings
+                let weight = 2;
+                if (i === 0 || i === fineSteps) weight = 1;
+                else if (i % 2 !== 0) weight = 4;
+
+                const sliceValue = (hFine / 3) * yVal * weight;
+                exactNet += sliceValue;
+                exactGross += Math.abs(sliceValue);
+                if (sliceValue > 0) exactPos += sliceValue;
+                else exactNeg += Math.abs(sliceValue);
+            }
+
+            // Flip results algebraically if upper bound is lower than lower bound
+            exactNet *= direction;
+
+            // 2. If Riemann Sum or Trapezoid selected, calculate that specific approximation
+            if (mathState.visMode !== 'exact') {
+                const N = mathState.N;
+                const h = (end - start) / N;
+
+                if (mathState.visMode === 'left') {
+                    for (let i = 0; i < N; i++) {
+                        const x = start + i * h;
+                        const y = evaluateFunction(x);
+                        calculatedVal += y * h;
+                    }
+                } else if (mathState.visMode === 'right') {
+                    for (let i = 1; i <= N; i++) {
+                        const x = start + i * h;
+                        const y = evaluateFunction(x);
+                        calculatedVal += y * h;
+                    }
+                } else if (mathState.visMode === 'midpoint') {
+                    for (let i = 0; i < N; i++) {
+                        const x = start + (i + 0.5) * h;
+                        const y = evaluateFunction(x);
+                        calculatedVal += y * h;
+                    }
+                } else if (mathState.visMode === 'trapezoid') {
+                    for (let i = 0; i < N; i++) {
+                        const x0 = start + i * h;
+                        const x1 = start + (i + 1) * h;
+                        const y0 = evaluateFunction(x0);
+                        const y1 = evaluateFunction(x1);
+                        calculatedVal += 0.5 * (y0 + y1) * h;
+                    }
+                }
+                calculatedVal *= direction;
+            } else {
+                calculatedVal = exactNet;
+            }
+
+            // Render calculation panel displays with 5-decimal standard floating precisions
+            resultVal.textContent = calculatedVal.toFixed(5);
+            netAreaDisp.textContent = exactNet.toFixed(5);
+            grossAreaDisp.textContent = exactGross.toFixed(5);
+            posAreaDisp.textContent = exactPos.toFixed(5);
+            negAreaDisp.textContent = (-exactNeg).toFixed(5);
+        }
+
+        // Smart Coordinate autoscale ticks algorithm
+        function calculateGridStep() {
+            const rawWidth = canvas.width / viewport.scaleX;
+            const approxTicks = 8;
+            const rawStep = rawWidth / approxTicks;
+            const exponent = Math.floor(Math.log10(rawStep));
+            const magnitude = Math.pow(10, exponent);
+            const normalized = rawStep / magnitude;
+
+            let step = magnitude;
+            if (normalized >= 5.0) step = 5 * magnitude;
+            else if (normalized >= 2.0) step = 2 * magnitude;
+            return step;
+        }
+
+        // GRAPH RENDERING PIPELINE
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Background Grids
+            drawGrid();
+
+            // Render Under-Curve Integration Shapes (Shading/Riemann Slices)
+            drawIntegrationVisuals();
+
+            // Render the Core Continuous Function Curve
+            drawFunctionCurve();
+
+            // Draw Draggable Limit lines & visual Handles
+            drawLimitsAndHandles();
+        }
+
+        // Draw mathematical Grid ticks & numeric axes labels
+        function drawGrid() {
+            const step = calculateGridStep();
+            
+            // Extends rendering domain boundaries
+            const mathLeft = toMathX(0);
+            const mathRight = toMathX(canvas.width);
+            const mathTop = toMathY(0);
+            const mathBottom = toMathY(canvas.height);
+
+            const gridStartValX = Math.floor(mathLeft / step) * step;
+            const gridStartValY = Math.floor(mathBottom / step) * step;
+
+            ctx.lineWidth = 1;
+            
+            // Major and Minor grid line renders
+            for (let x = gridStartValX; x <= mathRight; x += step) {
+                const px = toScreenX(x);
+                ctx.strokeStyle = Math.abs(x) < 1e-10 ? '#475569' : '#1e293b';
+                ctx.beginPath();
+                ctx.moveTo(px, 0);
+                ctx.lineTo(px, canvas.height);
+                ctx.stroke();
+
+                // Axis label rendering
+                if (Math.abs(x) > 1e-10) {
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '10px monospace';
+                    const yAxisPos = Math.min(Math.max(20, toScreenY(0) + 15), canvas.height - 10);
+                    ctx.fillText(x.toFixed(x % 1 === 0 ? 0 : 2), px - 10, yAxisPos);
+                }
+            }
+
+            for (let y = gridStartValY; y <= mathTop; y += step) {
+                const py = toScreenY(y);
+                ctx.strokeStyle = Math.abs(y) < 1e-10 ? '#475569' : '#1e293b';
+                ctx.beginPath();
+                ctx.moveTo(0, py);
+                ctx.lineTo(canvas.width, py);
+                ctx.stroke();
+
+                // Axis label rendering
+                if (Math.abs(y) > 1e-10) {
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '10px monospace';
+                    const xAxisPos = Math.min(Math.max(5, toScreenX(0) + 5), canvas.width - 35);
+                    ctx.fillText(y.toFixed(y % 1 === 0 ? 0 : 2), xAxisPos, py + 4);
+                }
+            }
+
+            // Render Primary X/Y Axes Lines
+            const originPX = toScreenX(0);
+            const originPY = toScreenY(0);
+
+            ctx.strokeStyle = '#475569';
+            ctx.lineWidth = 1.5;
+
+            // Draw Y-axis line
+            ctx.beginPath();
+            ctx.moveTo(originPX, 0);
+            ctx.lineTo(originPX, canvas.height);
+            ctx.stroke();
+
+            // Draw X-axis line
+            ctx.beginPath();
+            ctx.moveTo(0, originPY);
+            ctx.lineTo(canvas.width, originPY);
+            ctx.stroke();
+
+            // Origin marker text
+            ctx.fillStyle = '#64748b';
+            ctx.fillText('0', originPX - 12, originPY + 15);
+        }
+
+        // Draw shaded bounds based on visualization states
+        function drawIntegrationVisuals() {
+            if (!mathState.compiledExpr) return;
+
+            const start = Math.min(mathState.a, mathState.b);
+            const end = Math.max(mathState.a, mathState.b);
+            
+            const screenLeft = toScreenX(start);
+            const screenRight = toScreenX(end);
+            const baselineY = toScreenY(0);
+
+            // 1. Definite Integral Exact Shading
+            if (mathState.visMode === 'exact') {
+                // Adaptive step based on horizontal resolution pixels
+                const resStep = 2; // pixel slices step size
+                
+                ctx.save();
+                for (let px = screenLeft; px <= screenRight; px += resStep) {
+                    const currentMathX = toMathX(px);
+                    const currentMathY = evaluateFunction(currentMathX);
+                    const py = toScreenY(currentMathY);
+
+                    // Setup glowing color scheme: Emerald (positive area), Rose (negative area)
+                    const isPositive = currentMathY >= 0;
+                    ctx.fillStyle = isPositive ? 'rgba(16, 185, 129, 0.22)' : 'rgba(244, 63, 94, 0.22)';
+                    ctx.strokeStyle = isPositive ? 'rgba(16, 185, 129, 0.45)' : 'rgba(244, 63, 94, 0.45)';
+                    ctx.lineWidth = 1;
+
+                    ctx.beginPath();
+                    ctx.moveTo(px, baselineY);
+                    ctx.lineTo(px, py);
+                    // Span a rectangle to the next step
+                    const nextPX = Math.min(screenRight, px + resStep);
+                    const nextMathX = toMathX(nextPX);
+                    const nextMathY = evaluateFunction(nextMathX);
+                    const nextPY = toScreenY(nextMathY);
+                    ctx.lineTo(nextPX, nextPY);
+                    ctx.lineTo(nextPX, baselineY);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+            
+            // 2. Approximation Slabs Visualizers
+            else {
+                const N = mathState.N;
+                const h = (end - start) / N;
+
+                ctx.save();
+                for (let i = 0; i < N; i++) {
+                    const xL = start + i * h;
+                    const xR = start + (i + 1) * h;
+                    
+                    let drawYL, drawYR, barHeightMath;
+
+                    switch (mathState.visMode) {
+                        case 'left':
+                            barHeightMath = evaluateFunction(xL);
+                            drawYL = toScreenY(barHeightMath);
+                            drawYR = drawYL;
+                            break;
+                        case 'right':
+                            barHeightMath = evaluateFunction(xR);
+                            drawYL = toScreenY(barHeightMath);
+                            drawYR = drawYL;
+                            break;
+                        case 'midpoint':
+                            barHeightMath = evaluateFunction(xL + 0.5 * h);
+                            drawYL = toScreenY(barHeightMath);
+                            drawYR = drawYL;
+                            break;
+                        case 'trapezoid':
+                            drawYL = toScreenY(evaluateFunction(xL));
+                            drawYR = toScreenY(evaluateFunction(xR));
+                            barHeightMath = (evaluateFunction(xL) + evaluateFunction(xR)) / 2;
+                            break;
+                    }
+
+                    const pxL = toScreenX(xL);
+                    const pxR = toScreenX(xR);
+
+                    // Dynamic colors based on active bar average math height
+                    const isPositive = barHeightMath >= 0;
+                    ctx.fillStyle = isPositive ? 'rgba(16, 185, 129, 0.22)' : 'rgba(244, 63, 94, 0.22)';
+                    ctx.strokeStyle = isPositive ? 'rgba(16, 185, 129, 0.85)' : 'rgba(244, 63, 94, 0.85)';
+                    ctx.lineWidth = 1.5;
+
+                    ctx.beginPath();
+                    ctx.moveTo(pxL, baselineY);
+                    ctx.lineTo(pxL, drawYL);
+                    ctx.lineTo(pxR, drawYR);
+                    ctx.lineTo(pxR, baselineY);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Optional subtle midpoint dots
+                    if (mathState.visMode === 'midpoint') {
+                        ctx.fillStyle = '#6366f1';
+                        ctx.beginPath();
+                        ctx.arc(toScreenX(xL + 0.5 * h), drawYL, 3.5, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+                ctx.restore();
+            }
+        }
+
+        // Draw core continuously computed function graph line
+        function drawFunctionCurve() {
+            if (!mathState.compiledExpr) return;
+
+            ctx.save();
+            ctx.beginPath();
+
+            let firstVal = true;
+            const totalPixels = canvas.width;
+
+            for (let px = 0; px <= totalPixels; px++) {
+                const mathX = toMathX(px);
+                const mathY = evaluateFunction(mathX);
+
+                if (!isFinite(mathY) || isNaN(mathY)) {
+                    // Break curve drawing paths in cases of asymptotic asymptotes (e.g., 1/x)
+                    ctx.stroke();
+                    ctx.beginPath();
+                    firstVal = true;
+                    continue;
+                }
+
+                const py = toScreenY(mathY);
+
+                if (firstVal) {
+                    ctx.moveTo(px, py);
+                    firstVal = false;
+                } else {
+                    ctx.lineTo(px, py);
+                }
+            }
+
+            // Premium Glowing Line Aesthetics
+            ctx.shadowColor = 'rgba(99, 102, 241, 0.6)';
+            ctx.shadowBlur = 8;
+            ctx.strokeStyle = '#6366f1'; // Indigo-500 neon graph
+            ctx.lineWidth = 3.5;
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        // Render draggable visual handles at limit ranges
+        function drawLimitsAndHandles() {
+            const screenA = toScreenX(mathState.a);
+            const screenB = toScreenX(mathState.b);
+
+            // Draw Lower Limit 'a' (Emerald)
+            ctx.save();
+            ctx.shadowColor = 'rgba(16, 185, 129, 0.3)';
+            ctx.shadowBlur = 4;
+            ctx.strokeStyle = '#10b981'; // Emerald-500
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]); // Dashed line effect
+            ctx.beginPath();
+            ctx.moveTo(screenA, 0);
+            ctx.lineTo(screenA, canvas.height);
+            ctx.stroke();
+            ctx.restore();
+
+            // Draw Upper Limit 'b' (Sky)
+            ctx.save();
+            ctx.shadowColor = 'rgba(14, 165, 233, 0.3)';
+            ctx.shadowBlur = 4;
+            ctx.strokeStyle = '#0ea5e9'; // Sky-500
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(screenB, 0);
+            ctx.lineTo(screenB, canvas.height);
+            ctx.stroke();
+            ctx.restore();
+
+            // Draw visual touch/drag grab knobs at standard heights
+            const knobY = canvas.height / 2;
+
+            drawKnob(screenA, knobY, '#10b981', 'a');
+            drawKnob(screenB, knobY, '#0ea5e9', 'b');
+        }
+
+        // Subroutine to draw glowing slider grab handle button on canvas
+        function drawKnob(x, y, color, label) {
+            ctx.save();
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 11, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // White center dot
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(x, y, 4, 0, 2 * Math.PI);
+            ctx.fill();
+
+            // Label text drawing
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 9px sans-serif';
+            ctx.fillText(label.toUpperCase(), x - 3.5, y - 18);
+            ctx.restore();
+        }
+
+        // Zoom Viewports
+        function zoom(multiplier) {
+            const oldScaleX = viewport.scaleX;
+            const oldScaleY = viewport.scaleY;
+
+            viewport.scaleX = Math.min(Math.max(viewport.minScale, viewport.scaleX * multiplier), viewport.maxScale);
+            viewport.scaleY = Math.min(Math.max(viewport.minScale, viewport.scaleY * multiplier), viewport.maxScale);
+            
+            draw();
+        }
+
+        // Reset visual axes mappings
+        function resetViewport() {
+            viewport.centerX = 0.0;
+            viewport.centerY = 0.0;
+            viewport.scaleX = 60.0;
+            viewport.scaleY = 60.0;
+            draw();
+        }
+
+        // EVENT LISTENERS FOR MATH CONTROL PANEL INPUTS
+        funcInput.addEventListener('input', (e) => {
+            const ok = parseAndCompile(e.target.value);
+            if (ok) {
+                recalculateMetrics();
+                draw();
+            }
+        });
+
+        // Numeric Inputs and Sliders Synchronizers
+        sliderA.addEventListener('input', (e) => {
+            mathState.a = parseFloat(e.target.value);
+            syncInputControls();
+            recalculateMetrics();
+            draw();
+        });
+
+        sliderB.addEventListener('input', (e) => {
+            mathState.b = parseFloat(e.target.value);
+            syncInputControls();
+            recalculateMetrics();
+            draw();
+        });
+
+        numA.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) val = -1.0;
+            mathState.a = val;
+            syncInputControls();
+            recalculateMetrics();
+            draw();
+        });
+
+        numB.addEventListener('change', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) val = 1.0;
+            mathState.b = val;
+            syncInputControls();
+            recalculateMetrics();
+            draw();
+        });
+
+        sliderN.addEventListener('input', (e) => {
+            mathState.N = parseInt(e.target.value);
+            syncInputControls();
+            recalculateMetrics();
+            draw();
+        });
+
+
+        // CANVAS EVENT HANDLERS (Panning, Zoom-on-Scroll & Limit Dragging)
+        
+        // Mouse Press / Touch Start
+        function handleStart(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = clientX - rect.left;
+            const mouseY = clientY - rect.top;
+
+            const mathX = toMathX(mouseX);
+
+            const screenA = toScreenX(mathState.a);
+            const screenB = toScreenX(mathState.b);
+            const knobY = canvas.height / 2;
+
+            // Check if user clicked close to boundaries 'a' or 'b'
+            const distToKnobA = Math.hypot(mouseX - screenA, mouseY - knobY);
+            const distToKnobB = Math.hypot(mouseX - screenB, mouseY - knobY);
+            const lineGrabDistance = 15; // horizontal margin to snap to boundary lines
+
+            if (distToKnobA < interactState.grabTolerance || Math.abs(mouseX - screenA) < lineGrabDistance) {
+                interactState.isDragging = true;
+                interactState.draggedItem = 'a';
+            } else if (distToKnobB < interactState.grabTolerance || Math.abs(mouseX - screenB) < lineGrabDistance) {
+                interactState.isDragging = true;
+                interactState.draggedItem = 'b';
+            } else {
+                // Otherwise user is dragging to pan viewport
+                interactState.isDragging = true;
+                interactState.draggedItem = 'pan';
+                interactState.startX = clientX;
+                interactState.startY = clientY;
+                interactState.startCenterX = viewport.centerX;
+                interactState.startCenterY = viewport.centerY;
+            }
+        }
+
+        // Mouse Drag / Touch Move
+        function handleMove(clientX, clientY) {
+            if (!interactState.isDragging) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = clientX - rect.left;
+            const currentMathX = toMathX(mouseX);
+
+            if (interactState.draggedItem === 'a') {
+                // Round to clean visual precision increments (0.01 step resolution)
+                mathState.a = Math.round(currentMathX * 100) / 100;
+                syncInputControls();
+                recalculateMetrics();
+                draw();
+            } else if (interactState.draggedItem === 'b') {
+                mathState.b = Math.round(currentMathX * 100) / 100;
+                syncInputControls();
+                recalculateMetrics();
+                draw();
+            } else if (interactState.draggedItem === 'pan') {
+                const deltaX = clientX - interactState.startX;
+                const deltaY = clientY - interactState.startY;
+
+                // Update math center offset from visual drag vectors
+                viewport.centerX = interactState.startCenterX - deltaX / viewport.scaleX;
+                viewport.centerY = interactState.startCenterY + deltaY / viewport.scaleY;
+                draw();
+            }
+        }
+
+        // Mouse Release / Touch End
+        function handleEnd() {
+            interactState.isDragging = false;
+            interactState.draggedItem = null;
+        }
+
+        // Binding Desktop Mouse Events
+        canvas.addEventListener('mousedown', (e) => {
+            handleStart(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            handleMove(e.clientX, e.clientY);
+        });
+
+        window.addEventListener('mouseup', () => {
+            handleEnd();
+        });
+
+        // Binding Mobile Touch Gestures
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                handleStart(e.touches[0].clientX, e.touches[0].clientY);
+                e.preventDefault(); // Prevents bounce scroll on mobile web browsers
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchmove', (e) => {
+            if (interactState.isDragging && e.touches.length === 1) {
+                handleMove(e.touches[0].clientX, e.touches[0].clientY);
+                e.preventDefault();
+            }
+        }, { passive: false });
+
+        window.addEventListener('touchend', () => {
+            handleEnd();
+        });
+
+        // Mouse Wheel Scroll Zoom listeners
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            // Retain math position coordinates focal alignment during zooming
+            const zoomFocalMathX = toMathX(mouseX);
+            const zoomFocalMathY = toMathY(mouseY);
+
+            const zoomFactor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
+            
+            viewport.scaleX = Math.min(Math.max(viewport.minScale, viewport.scaleX * zoomFactor), viewport.maxScale);
+            viewport.scaleY = Math.min(Math.max(viewport.minScale, viewport.scaleY * zoomFactor), viewport.maxScale);
+
+            // Shift coordinate anchor centers relative to focus points
+            viewport.centerX = zoomFocalMathX - (mouseX - canvas.width / 2) / viewport.scaleX;
+            viewport.centerY = zoomFocalMathY + (mouseY - canvas.height / 2) / viewport.scaleY;
+
+            draw();
+        }, { passive: false });
+
+    </script>
+</body>
+</html>
